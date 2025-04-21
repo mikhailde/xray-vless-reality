@@ -1,0 +1,26 @@
+your.domain.com {
+    # Укажите ваш email для получения уведомлений от Let's Encrypt
+    tls your-email@example.com
+
+    # Корень сайта - можно отдать простую заглушку
+    route / {
+        respond "OK" 200
+    }
+
+    # Проксирование WebSocket для Shadowsocks
+    # Убедитесь, что путь совпадает с SS_WS_PATH в файле .env
+    route /your-secret-path {
+        reverse_proxy shadowsocks:8388 {
+             header_up Host {http.reverse_proxy.upstream.hostport}
+             header_up X-Forwarded-For {http.request.remote}
+        }
+    }
+
+    # Логи (можно закомментировать)
+    log {
+        output file /data/access.log
+        format json
+    }
+
+    encode zstd gzip
+}
