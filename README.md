@@ -6,7 +6,7 @@ This repository contains configuration files for quickly setting up a proxy serv
 
 *   **Protocol:** VLESS
 *   **TLS Obfuscation:** XTLS Reality
-*   **Core:** Xray-core (using the a href="https://hub.docker.com/r/teddysun/xray" target="_blank">teddysun/xray/a> Docker image)
+*   **Core:** Xray-core (using the [`teddysun/xray`](https://hub.docker.com/r/teddysun/xray) Docker image)
 *   **Deployment:** Docker & Docker Compose
 
 ## Requirements
