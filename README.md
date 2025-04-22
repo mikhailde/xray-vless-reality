@@ -1,77 +1,86 @@
-# Shadowsocks + v2ray-plugin (WS+TLS) via Caddy (Docker Compose)
+# VLESS + XTLS Reality Server with Docker Compose
 
-Эта конфигурация позволяет быстро развернуть Shadowsocks сервер с использованием v2ray-plugin для маскировки трафика под WebSocket (WS) + TLS. В качестве веб-сервера для обработки TLS и проксирования используется Caddy. Все компоненты запускаются в Docker контейнерах с помощью Docker Compose.
+This repository contains configuration files for quickly setting up a proxy server using VLESS + XTLS Reality based on Xray-core, managed via Docker Compose. This configuration is designed to bypass complex DPI (Deep Packet Inspection) blocks and ensure a stable connection, especially on mobile operator networks.
 
-## Пререквизиты
+## Technology Stack
 
-*   Сервер (VPS) с установленным **Docker** и **Docker Compose v2**.
-*   **Доменное имя**, DNS A-запись которого указывает на IP-адрес вашего сервера.
-*   Открытые порты **80** (для получения сертификата Let's Encrypt) и **443** (для HTTPS/WSS трафика) на вашем сервере.
+*   **Protocol:** VLESS
+*   **TLS Obfuscation:** XTLS Reality
+*   **Core:** Xray-core (using the a href="https://hub.docker.com/r/teddysun/xray" target="_blank">teddysun/xray/a> Docker image)
+*   **Deployment:** Docker & Docker Compose
 
-## Конфигурация
+## Requirements
 
-1.  **Клонируйте репозиторий:**
+*   A VPS (Virtual Private Server) with a public IP address running Linux (e.g., Ubuntu).
+*   Docker and Docker Compose installed on the server. (See official Docker documentation)
+*   Ability to connect to the server via SSH.
+
+## Server Setup
+
+1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/mikhailde/shadowsocks-caddy-docker.git
-    cd shadowsocks-caddy-docker
+    git clone https://github.com/mikhailde/xray-vless-reality.git
+    cd xray-vless-reality
     ```
 
-2.  **(При необходимости) Обновите бинарный файл v2ray-plugin:**
-    Текущий файл `v2ray-plugin_exec` включен в репозиторий для удобства. Если вы хотите использовать другую версию, скачайте нужный релиз с [репозитория v2ray-plugin](https://github.com/shadowsocks/v2ray-plugin/releases), извлеките исполняемый файл `v2ray-plugin_linux_amd64` (или для вашей архитектуры) и переименуйте его в `v2ray-plugin_exec` в этой директории. Не забудьте сделать его исполняемым (`chmod +x v2ray-plugin_exec`).
-
-3.  **Создайте и настройте `.env` файл:**
-    Скопируйте шаблон:
+2.  **Generate a UUID:**
     ```bash
-    cp .env.example .env
+    uuidgen
     ```
-    Отредактируйте `.env`:
+    Copy and save the generated UUID.
+
+3.  **Generate XTLS Reality keys:**
     ```bash
-    nano .env
+    docker run --rm teddysun/xray:latest xray x25519
     ```
-    *   Установите **надежный пароль** для `SS_PASSWORD`.
-    *   Установите **секретный путь** для `SS_WS_PATH` (например, `/a7b3c9d1e5f` или `/api/v2/streams/live`).
+    Copy and save the **Private key** and **Public key**. **Never share your private key!**
 
-4.  **Отредактируйте `Caddyfile`:**
+4.  **(Optional) Generate a Short ID:**
     ```bash
-    nano Caddyfile
+    openssl rand -hex 8
     ```
-    *   Замените `your.domain.com` на **ваше реальное доменное имя**.
-    *   Замените `your-email@example.com` на **ваш реальный email** (для уведомлений Let's Encrypt).
-    *   Замените `/your-secret-path` на **тот же секретный путь**, который вы указали в `SS_WS_PATH` в файле `.env`.
+    You can generate one or more Short IDs or use an empty string `""`.
 
-## Запуск
+5.  **Configure `xray_config.json`:**
+    *   Open the `xray_config.json` file.
+    *   Replace `"YOUR_UUID_HERE"` with your generated UUID.
+    *   Replace `"YOUR_REALITY_PRIVATE_KEY_HERE"` with your generated **private** Reality key.
+    *   In the `"shortIds"` section, replace `"YOUR_SHORT_ID_HERE"` with your generated Short ID (or leave `""`).
+    *   Ensure `dest` and `serverNames` point to the desired target website (e.g., `www.microsoft.com:443` and `["www.microsoft.com", "microsoft.com"]`). This site must be accessible from your server.
 
-Находясь в директории с файлами `docker-compose.yml`, `Caddyfile` и `.env`, выполните:
-```bash
-sudo docker compose up -d
-```
-Caddy автоматически получит TLS сертификат для вашего домена.
+6.  **Start the container:**
+    ```bash
+    docker compose up -d
+    ```
 
-## Остановка
+7.  **Check the status:**
+    ```bash
+    docker compose ps
+    # Should show the xray service with status 'Up'
+    docker compose logs xray
+    # Ensure there are no startup errors
+    ```
 
-```bash
-sudo docker compose down
-```
-Для удаления томов (данных Caddy, включая сертификаты) используйте:
-```bash
-sudo docker compose down -v
-```
+## Client Setup
 
-## Настройка клиента
+Use a client application that supports **VLESS** and **XTLS Reality** (e.g., v2rayNG, NekoBox, SagerNet, v2rayN, NekoRay, Shadowrocket, Stash, Quantumult X).
 
-Используйте следующие параметры в вашем клиенте Shadowsocks с поддержкой v2ray-plugin:
+**Parameters:**
 
-*   **Адрес/Сервер:** `ваше.доменное.имя`
-*   **Порт:** `443`
-*   **Пароль:** Ваш пароль из `.env` (`SS_PASSWORD`)
-*   **Метод шифрования:** `AES-256-GCM` (или тот, что указан в `docker-compose.yml`)
-*   **Плагин:** `v2ray-plugin`
-*   **Опции плагина:**
-    *   Режим: `websocket`
-    *   TLS: Включено
-    *   Хост/SNI: `ваше.доменное.имя`
-    *   Путь: Ваш секретный путь из `.env` (`SS_WS_PATH`)
+*   **Protocol/Type:** VLESS
+*   **Address/Server:** Your server's IP address or domain name
+*   **Port:** 443
+*   **UUID:** YOUR_UUID_HERE (The one you generated and put in `xray_config.json`)
+*   **Flow:** `xtls-rprx-vision`
+*   **Encryption:** `none`
+*   **Network/Transport:** `tcp`
+*   **Security/Security Type:** `reality`
+*   **SNI/Server Name:** `www.microsoft.com` (or the target site from `serverNames` in `xray_config.json`)
+*   **Fingerprint:** `chrome` (or `firefox`)
+*   **Public Key:** YOUR_REALITY_PUBLIC_KEY_HERE (The public key you generated)
+*   **Short ID:** YOUR_SHORT_ID_HERE (The one you configured in `xray_config.json` and want to use)
 
-## Лицензия
+## Important Security Note
 
-Конфигурационные файлы предоставляются под лицензией MIT. Сам Shadowsocks, Caddy, v2ray-plugin имеют свои лицензии.
+*   **Never commit or publish your real Private Reality Key or UUID to public repositories!** Use placeholders in the configuration as shown in this example.
+*   Keep your actual keys and UUID stored securely.

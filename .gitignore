@@ -1,2 +1,13 @@
+*.key
+*.secret
+secrets.txt
 .env
+
+.DS_Store
+*.swp
+*~
+
 *.log
+
+caddy_data/
+caddy_config/
