@@ -1,86 +1,79 @@
 # VLESS + XTLS Reality Server with Docker Compose
 
-This repository contains configuration files for quickly setting up a proxy server using VLESS + XTLS Reality based on Xray-core, managed via Docker Compose. This configuration is designed to bypass complex DPI (Deep Packet Inspection) blocks and ensure a stable connection, especially on mobile operator networks.
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/teddysun/xray)
+[![Xray-core](https://img.shields.io/badge/Xray--core-latest-orange.svg)](https://github.com/XTLS/Xray-core)
+[![GitHub stars](https://img.shields.io/github/stars/mikhailde/xray-vless-reality?style=social)](https://github.com/mikhailde/xray-vless-reality)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Technology Stack
+> ⭐ **If this project saved your time, please consider giving it a Star! It helps more people find this repository.**
 
-*   **Protocol:** VLESS
-*   **TLS Obfuscation:** XTLS Reality
-*   **Core:** Xray-core (using the [`teddysun/xray`](https://hub.docker.com/r/teddysun/xray) Docker image)
-*   **Deployment:** Docker & Docker Compose
+A clean, lightweight configuration for deploying a **VLESS + XTLS Reality** proxy server based on Xray-core with Docker Compose. Designed to bypass Deep Packet Inspection (DPI) and ensure high stability on restricted networks.
+
+---
 
 ## Requirements
 
-*   A VPS (Virtual Private Server) with a public IP address running Linux (e.g., Ubuntu).
-*   Docker and Docker Compose installed on the server. (See official Docker documentation)
-*   Ability to connect to the server via SSH.
+* A Linux VPS (Ubuntu, Debian, CentOS, etc.) with a public IPv4.
+* Docker and Docker Compose installed.
+* **Port 443 (TCP)** opened in your firewall / cloud security groups.
 
-## Server Setup
+---
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/mikhailde/xray-vless-reality.git
-    cd xray-vless-reality
-    ```
+## Quick Setup (1-Command)
 
-2.  **Generate a UUID:**
-    ```bash
-    uuidgen
-    ```
-    Copy and save the generated UUID.
+Run the command below. The script generates credentials, configures Xray, starts the container, and **prints your ready-to-use client link & QR code**:
 
-3.  **Generate XTLS Reality keys:**
-    ```bash
-    docker run --rm teddysun/xray:latest xray x25519
-    ```
-    Copy and save the **Private key** and **Public key**. **Never share your private key!**
+```bash
+git clone https://github.com/mikhailde/xray-vless-reality.git && cd xray-vless-reality && chmod +x setup.sh && ./setup.sh
+```
 
-4.  **(Optional) Generate a Short ID:**
-    ```bash
-    openssl rand -hex 8
-    ```
-    You can generate one or more Short IDs or use an empty string `""`.
+> [!TIP]
+> Need to view your connection link or QR code again later? Just run `./setup.sh` anytime.
 
-5.  **Configure `xray_config.json`:**
-    *   Open the `xray_config.json` file.
-    *   Replace `"YOUR_UUID_HERE"` with your generated UUID.
-    *   Replace `"YOUR_REALITY_PRIVATE_KEY_HERE"` with your generated **private** Reality key.
-    *   In the `"shortIds"` section, replace `"YOUR_SHORT_ID_HERE"` with your generated Short ID (or leave `""`).
-    *   Ensure `dest` and `serverNames` point to the desired target website (e.g., `www.microsoft.com:443` and `["www.microsoft.com", "microsoft.com"]`). This site must be accessible from your server.
+<details>
+<summary><b>Manual Setup (Alternative)</b></summary>
 
-6.  **Start the container:**
-    ```bash
-    docker compose up -d
-    ```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/mikhailde/xray-vless-reality.git
+   cd xray-vless-reality
+   ```
 
-7.  **Check the status:**
-    ```bash
-    docker compose ps
-    # Should show the xray service with status 'Up'
-    docker compose logs xray
-    # Ensure there are no startup errors
-    ```
+2. **Generate credentials:**
+   ```bash
+   cat /proc/sys/kernel/random/uuid
+   docker run --rm teddysun/xray:latest xray x25519
+   openssl rand -hex 4
+   ```
+
+3. **Configure `xray_config.json`:**
+   * Replace `YOUR_UUID_HERE` with your generated UUID.
+   * Replace `YOUR_REALITY_PRIVATE_KEY_HERE` with your Private Key.
+   * In `shortIds`, set your Short ID (e.g. `["b5383491"]`) or leave `[""]`.
+
+4. **Start the container:**
+   ```bash
+   docker compose up -d
+   ```
+</details>
+
+---
 
 ## Client Setup
 
-Use a client application that supports **VLESS** and **XTLS Reality** (e.g., v2rayNG, NekoBox, SagerNet, v2rayN, NekoRay, Shadowrocket, Stash, Quantumult X).
+### 1. Supported Clients
+* **Android:** [v2rayNG](https://github.com/2dust/v2rayNG), [NekoBox](https://github.com/MatsuriDayo/NekoBoxForAndroid)
+* **iOS:** Shadowrocket, Streisand, FoXray, Stash
+* **Desktop:** [v2rayN](https://github.com/2dust/v2rayN), [Hiddify](https://github.com/hiddify/hiddify-app), Sing-box
 
-**Parameters:**
+### 2. How to Connect
+* **Automated:** Scan the terminal QR code or import the `vless://` link from your clipboard.
+* **Manual Parameters:**
+  `Protocol: VLESS` | `Port: 443` | `Flow: xtls-rprx-vision` | `Security: reality` | `Network: tcp` | `SNI: www.microsoft.com` | `Fingerprint: chrome` | `Encryption: none`
 
-*   **Protocol/Type:** VLESS
-*   **Address/Server:** Your server's IP address or domain name
-*   **Port:** 443
-*   **UUID:** YOUR_UUID_HERE (The one you generated and put in `xray_config.json`)
-*   **Flow:** `xtls-rprx-vision`
-*   **Encryption:** `none`
-*   **Network/Transport:** `tcp`
-*   **Security/Security Type:** `reality`
-*   **SNI/Server Name:** `www.microsoft.com` (or the target site from `serverNames` in `xray_config.json`)
-*   **Fingerprint:** `chrome` (or `firefox`)
-*   **Public Key:** YOUR_REALITY_PUBLIC_KEY_HERE (The public key you generated)
-*   **Short ID:** YOUR_SHORT_ID_HERE (The one you configured in `xray_config.json` and want to use)
+---
 
-## Important Security Note
+## Security Notes
 
-*   **Never commit or publish your real Private Reality Key or UUID to public repositories!** Use placeholders in the configuration as shown in this example.
-*   Keep your actual keys and UUID stored securely.
+* **Never commit your generated `xray_config.json` with real private keys to a public repository!**
+* If you fork this repo, run `git update-index --assume-unchanged xray_config.json` to prevent accidental credential commits.

@@ -3,13 +3,12 @@ services:
     image: teddysun/xray:latest
     container_name: xray_proxy
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ./xray_config.json:/etc/xray/config.json:ro
     ports:
       - "443:443/tcp"
-    networks:
-      - proxy_net
-
-networks:
-  proxy_net:
-    driver: bridge
